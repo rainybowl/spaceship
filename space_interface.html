@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+<script type="text/javascript" src="spaceship.js" />
+
+<script>
+
+function el(id)
+{
+	return document.getElementById(id);
+}
+
+
+function fieldCheck(fields)
+{
+
+console.log(fields[0])
+
+	var errors = '';
+
+	var formats = { 
+		number: /^\d+$/,
+		coords: /[0-9]+\,\s[0-9]+$/
+	}
+
+	for(var i = 0; i< fields.length; i++)
+	{
+		var frm = fields[i].getAttribute('data-format');
+		var val = fields[i].value;
+		
+		if(val == '') errors += '\n' + fields[i].getAttribute('data-name');
+		if( val != '' && !val.match(formats[frm]) ) errors += '\n' + fields[i].getAttribute('data-name');	
+	}
+	
+	return errors;
+}
+
+
+function create(type, name, coords, capacity)
+{
+	switch (type){
+
+		case 'ship': {
+
+			var msg = fieldCheck( el('createShip').getElementsByTagName('input') );
+
+			if(msg.length) 
+			{
+				alert('Неправильно заполнены поля: ' + msg);
+			}
+			
+			else
+			{
+				var isSuchVessel = false;
+
+				for(var i = 0; i< Vessels.length; i++)
+				if (Vessels[i].name == name) isSuchVessel = !isSuchVessel;
+
+				if(isSuchVessel)
+					alert('Корабль с таким именем уже существует!'); 
+				else{			
+					var vessel = new Vessel(name, coords, capacity);
+					Vessels.push(vessel);
+
+					el('shipList').options[el('shipList').options.length] = new Option(vessel.name);
+
+					el('shipList').options[el('shipList').options.length-1].setAttribute('data-position', vessel.position);
+					el('shipList').options[el('shipList').options.length-1].setAttribute('data-capacity', vessel.capacity);
+
+					el('info').innerHTML += '<br/>Создан корабль: ' + vessel.report() + '<br/>';
+
+					if(el('shipList').options.length == 1) getInfo('shipList', 0);
+				}
+			}
+		}
+		break;
+
+		case 'planet': {
+
+			var msg = fieldCheck( el('createPlanet').getElementsByTagName('input') );
+
+			if(msg.length) 
+			{
+				alert('Неправильно заполнены поля: ' + msg)
+			}
+			else
+			{
+				var isSuchPlanet = false;
+
+				for(var i = 0; i< Planets.length; i++)
+				if (Planets[i].position == coords) isSuchPlanet = !isSuchPlanet;
+
+				if(isSuchPlanet)
+					alert('В этом месте уже есть планета!'); 
+				else{
+					var planet = new Planet(name, coords, capacity);
+
+					Planets.push(planet);
+
+					el('planetList').options[el('planetList').options.length] = new Option(planet.name);
+					el('planetList').options[el('planetList').options.length-1].setAttribute('data-position', planet.position);
+					el('planetList').options[el('planetList').options.length-1].setAttribute('data-availCargo', planet.capacity);
+
+					el('info').innerHTML += '<br/>Создана планета: ' + planet.report() + '<br/>';
+		
+					if(el('planetList').options.length == 1) getInfo('planetList', 0);
+				}
+			}
+		}
+		break;
+	}
+}
+
+
+
+function getInfo(id, index)
+{
+	switch (id){
+		case 'shipList': {
+			el('shipInfo').innerHTML = 'Выбран корабль: ' + Vessels[index].report();
+		}
+		break;
+
+		case 'planetList': {
+			el('planetInfo').innerHTML = 'Выбрана планета: ' + Planets[index].report();
+		}
+		break;
+	}
+}
+
+
+function fly(location)
+{
+
+ fieldCheck([ el('coordPoint') ]) 
+
+	if(location)
+	{
+		var pt = location.split(', ');
+		Vessels[el('shipList').selectedIndex].flyTo(pt); 
+		el('info').innerHTML += '<br/> Корабль ' + Vessels[el('shipList').selectedIndex].name + ' переместился в точку ' + location + '<br/>';
+	}
+	else
+	{
+		if(Vessels.length && Planets.length)
+		{
+			Vessels[el('shipList').selectedIndex].flyTo(Planets[el('planetList').selectedIndex]);
+			el('info').innerHTML += '<br/>  Корабль ' + Vessels[el('shipList').selectedIndex].name + ' приземлился на планете ' + Planets[el('planetList').selectedIndex].name  + '<br/>';
+		}
+		else
+		{
+			if(!Vessels.length)
+			alert('Необходимо построить корабль!')
+			
+			if(!Planets.length)
+			alert('Нет ни одной подходящей планеты!')
+		}
+	}
+}
+
+
+function getCargo()
+{
+	Planets[el('planetList').selectedIndex].loadCargoTo(Vessels[el('shipList').selectedIndex], + el('getCargoAmount').value);
+
+	if(Vessels.length && Planets.length && Vessels[el('shipList').selectedIndex].position == Planets[el('planetList').selectedIndex].position)
+	el('info').innerHTML += '<br/>На корабль ' + Vessels[el('shipList').selectedIndex].name + ' загружен груз ' + el('getCargoAmount').value + 'т' + '<br/>';
+}
+
+
+function leaveCargo()
+{
+	Planets[el('planetList').selectedIndex].unloadCargoFrom(Vessels[el('shipList').selectedIndex], +el('leaveCargoAmount').value)
+
+	if(Vessels.length && Planets.length && Vessels[el('shipList').selectedIndex].position == Planets[el('planetList').selectedIndex].position)
+		el('info').innerHTML += '<br/>С корабля ' + Vessels[el('shipList').selectedIndex].name + 'на планету ' +  Planets[el('planetList').selectedIndex].name +' выгружен груз ' + el('leaveCargoAmount').value + ' т' + '<br/>';
+}
+
+
+function updateInfo()
+{
+	getInfo('shipList', el('shipList').selectedIndex)
+	getInfo('planetList', el('planetList').selectedIndex)
+}
+
+
+</script>
+
+<style type="text/css">
+
+	.block {
+		border: 1px solid black;
+		border-radius: 5px;
+		padding: 10px;
+		margin: 10px;
+	}
+
+	label, input[type='button']  {
+		display: block;
+		margin-top: 10px;
+		margin-bottom: 10px;
+	}
+
+	input[type=button] {
+		background: white;
+		border: 1px solid black;
+		cursor: pointer;
+		border-radius: 5px;
+	}
+
+	#info {width: 200px;
+		float: right;
+		height: 700px;
+		overflow: scroll;
+	}
+
+	.left {float: left;
+	}
+	
+	.clear {
+		clear: both;
+	}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="block" id="info">
+	<h3>Монитор событий</h3>
+</div>
+
+<div class="left">
+
+	<div class="block left" id="create_ship">
+
+		<h3>Создать космический корабль</h3>
+		
+		<form name="createShip" id="createShip">
+			<label for="shipName">Имя корабля</label>
+			<input type="text" value="" id="shipName" name="shipName" data-format="any" data-name="Имя корабля" />
+
+			<label for="shipCoorinates">Местоположение</label>
+			<input type="text" value="" id="shipCoorinates" name="shipCoorinates" data-format="coords" data-name="Местоположение" />
+
+			<label for="shipCapacity">Грузоподъемность</label>
+			<input type="text" value="" id="shipCapacity" name="shipCapacity" data-format="number" data-name="Грузоподъемность" />
+
+			<input type="button" value="Построить!" onclick="create('ship', el('shipName').value, el('shipCoorinates').value, el('shipCapacity').value )"/>
+		</form>
+	</div>
+
+	<div class="block left" id="create_planet">
+
+		<h3>Создать планету</h3>
+		
+		<form name="createPlanet" id="createPlanet">
+			<label for="planetName">Имя планеты</label>
+			<input type="text" value="" id="planetName" name="planetName" data-format="any" data-name="Имя планеты" />
+
+			<label for="planetCoorinates">Местоположение</label>
+			<input type="text" value="" id="planetCoorinates" name="planetCoorinates" data-format="coords" data-name="Местоположение" />
+
+			<label for="planetCargo">Груз</label>
+			<input type="text" value="" id="planetCargo" name="planetCargo" data-format="number" data-name="Груз" />
+
+			<input type="button" value="Построить!" onclick="create('planet', el('planetName').value, el('planetCoorinates').value, el('planetCargo').value )"/>
+		</form>
+	</div>
+
+	
+	<div class="block clear">
+		Список кораблей:
+		<select id="shipList" onchange="getInfo(this.id, this.selectedIndex)"></select>
+
+		Список планет:
+		<select id="planetList" onchange="getInfo(this.id, this.selectedIndex)"></select>
+	</div>
+
+	<div class="block clear">
+		<div id="shipInfo" class="block">Текущий корабль:</div>
+
+		<div id="planetInfo" class="block">Текущая планета:</div>
+	</div>
+
+	<div id="actions" class="block">
+		<form name="missions" id="missions">
+			<input type="button" id="" value="Полететь к выбранной планете" onclick="fly(); updateInfo()"/>
+			<br/>
+			
+			<input type="text" id="coordPoint" data-format="coords" value="" />
+			<input type="button" id="" value="Полететь к точке" onclick="fly(el('coordPoint').value); updateInfo()"/>
+			
+			<br/>
+			<input type="text" id="getCargoAmount" data-format="number" />
+			<input type="button" id="" value="Нагрузить корабль" onclick="getCargo(); updateInfo()"/>
+			
+			<br/>
+			<input type="text" id="leaveCargoAmount" data-format="number" />
+			<input type="button" id="" value="Разгрузить корабль" onclick="leaveCargo(); updateInfo()" />
+		</form>
+	</div>
+
+</div>
+</body>
+
+</html>
